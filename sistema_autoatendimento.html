@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Autoatendimento</title>
+<style>
+    :root {
+        --purple: #9b59b6;
+        --purple-dark: #7d3c98;
+        --purple-light: #f4e9f8;
+        --green: #2ecc71;
+        --green-dark: #219150;
+        --orange: #e67e22;
+        --red: #e74c3c;
+        --text-strong: #0f172a;
+        --text-body: #1e293b;
+        --text-muted: #64748b;
+        --border-soft: #e2e8f0;
+        --bg-page: #f4f7f6;
+        --bg-surface: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; }
+    html, body { background: var(--bg-page); color: var(--text-body); height: 100%; }
+    body { padding-bottom: 110px; }
+    button, input, select { font-family: inherit; }
+
+    /* ===== HEADER ===== */
+    header {
+        position: sticky; top: 0; z-index: 20;
+        background: linear-gradient(135deg, var(--purple), var(--purple-dark)); color: #fff;
+        padding: 18px 16px 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+    .header-row { display: flex; align-items: center; gap: 12px; }
+    .header-titles { flex: 1; min-width: 0; }
+    header h1 { font-size: 16.5pt; }
+    header p { font-size: 9pt; opacity: 0.9; margin-top: 2px; }
+    .btn-icon-header {
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        width: 40px; height: 40px; border-radius: 11px;
+        background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.3);
+        color: #fff; font-size: 14pt;
+    }
+    .btn-icon-header:active { background: rgba(255,255,255,0.3); }
+    .local-badge {
+        margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.25);
+        padding: 5px 10px; border-radius: 20px; font-size: 8pt; font-weight: 700;
+    }
+
+    .container { padding: 14px; max-width: 560px; margin: 0 auto; }
+
+    /* ===== BUSCA ===== */
+    .search-wrap { position: relative; margin-bottom: 14px; }
+    .search-wrap input {
+        width: 100%; padding: 13px 14px 13px 40px; border: 1px solid var(--border-soft);
+        border-radius: 12px; font-size: 11pt; background: #fff;
+    }
+    .search-wrap .search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 11pt; opacity: 0.5; }
+
+    /* ===== GRID DE PRODUTOS ===== */
+    .produtos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .produto-card {
+        background: var(--bg-surface); border: 1px solid var(--border-soft); border-radius: 14px;
+        padding: 12px; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        position: relative; overflow: hidden;
+    }
+    .produto-card.esgotado { opacity: 0.5; }
+    .produto-thumb {
+        width: 100%; aspect-ratio: 1.4; border-radius: 10px; margin-bottom: 8px;
+        display: flex; align-items: center; justify-content: center; font-size: 24pt; font-weight: 800; color: #fff;
+    }
+    .produto-nome { font-size: 10pt; font-weight: 700; color: var(--text-strong); line-height: 1.25; margin-bottom: 4px; min-height: 25px; }
+    .produto-preco { font-size: 12.5pt; font-weight: 800; color: var(--purple-dark); margin-bottom: 2px; }
+    .produto-estoque { font-size: 7.8pt; color: var(--text-muted); margin-bottom: 8px; }
+    .produto-estoque.baixo { color: var(--orange); font-weight: 700; }
+    .produto-estoque.zero { color: var(--red); font-weight: 700; }
+
+    .btn-add-produto {
+        width: 100%; padding: 10px; border-radius: 9px; border: none; background: var(--purple);
+        color: #fff; font-weight: 700; font-size: 9.5pt; margin-top: auto;
+    }
+    .btn-add-produto:active { background: var(--purple-dark); }
+    .btn-add-produto:disabled { background: #cbd5e1; }
+
+    .qtd-stepper { display: flex; align-items: center; gap: 0; margin-top: auto; }
+    .qtd-stepper button {
+        width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--purple);
+        color: #fff; font-size: 13pt; font-weight: 700; flex-shrink: 0;
+    }
+    .qtd-stepper button:active { background: var(--purple-dark); }
+    .qtd-stepper .qtd-val { flex: 1; text-align: center; font-weight: 800; font-size: 11pt; color: var(--text-strong); }
+
+    #produtos-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 9.5pt; grid-column: 1 / -1; }
+
+    /* ===== BARRA DE CARRINHO FLUTUANTE ===== */
+    .cart-bar {
+        position: fixed; left: 14px; right: 14px; bottom: 14px; max-width: 532px; margin: 0 auto;
+        background: var(--green); color: #fff; border: none; border-radius: 14px;
+        padding: 14px 18px; display: none; align-items: center; justify-content: space-between;
+        box-shadow: 0 6px 20px rgba(46,204,113,0.45); z-index: 40;
+    }
+    .cart-bar.show { display: flex; }
+    .cart-bar-left { display: flex; align-items: center; gap: 10px; text-align: left; }
+    .cart-bar-count {
+        background: rgba(255,255,255,0.25); width: 26px; height: 26px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; font-size: 10pt; font-weight: 800;
+    }
+    .cart-bar-total { font-weight: 800; font-size: 12pt; }
+    .cart-bar-cta { font-weight: 700; font-size: 10pt; display: flex; align-items: center; gap: 4px; }
+
+    /* ===== SHEETS (bottom sheets genéricos) ===== */
+    .sheet-overlay {
+        position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 200;
+        display: none; align-items: flex-end; justify-content: center;
+    }
+    .sheet-overlay.show { display: flex; }
+    .sheet-overlay.center { align-items: center; padding: 16px; }
+    .sheet-box {
+        background: #fff; width: 100%; max-width: 560px; max-height: 90vh; border-radius: 20px 20px 0 0;
+        display: flex; flex-direction: column; box-shadow: 0 -6px 24px rgba(0,0,0,0.2);
+    }
+    .sheet-overlay.center .sheet-box { border-radius: 18px; max-height: 92vh; }
+    .sheet-header {
+        padding: 16px 16px 12px; border-bottom: 1px solid var(--border-soft);
+        display: flex; align-items: center; gap: 10px;
+    }
+    .sheet-header h3 { font-size: 12.5pt; color: var(--text-strong); flex: 1; }
+    .sheet-close {
+        width: 34px; height: 34px; border-radius: 50%; border: none; background: #f1f5f9;
+        color: var(--text-muted); font-size: 12pt; flex-shrink: 0;
+    }
+    .sheet-body { overflow-y: auto; padding: 14px 16px 20px; }
+    .sheet-footer { padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border-soft); }
+
+    /* ===== ITENS DO CARRINHO ===== */
+    .cart-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .cart-item-info { flex: 1; min-width: 0; }
+    .cart-item-nome { font-weight: 700; font-size: 10.5pt; color: var(--text-strong); }
+    .cart-item-preco { font-size: 8.5pt; color: var(--text-muted); margin-top: 2px; }
+    .cart-item-stepper { display: flex; align-items: center; gap: 6px; }
+    .cart-item-stepper button {
+        width: 28px; height: 28px; border-radius: 7px; border: none; background: #f1f5f9;
+        color: var(--text-strong); font-size: 12pt; font-weight: 700;
+    }
+    .cart-item-stepper .val { min-width: 20px; text-align: center; font-weight: 700; font-size: 10.5pt; }
+    .cart-item-subtotal { font-weight: 800; font-size: 10.5pt; color: var(--text-strong); min-width: 62px; text-align: right; }
+    .cart-item-remove { border: none; background: none; color: var(--red); font-size: 12pt; padding: 4px; }
+
+    .total-box { background: #f8fafc; border-radius: 12px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .total-box span:first-child { font-size: 10pt; font-weight: 700; color: var(--text-muted); }
+    .total-box span:last-child { font-size: 15pt; font-weight: 800; color: var(--text-strong); }
+
+    .btn-primario {
+        width: 100%; padding: 15px; border-radius: 12px; font-weight: 800; border: none;
+        background: var(--green); color: #fff; font-size: 11pt;
+        cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: rgba(0,0,0,0.12);
+    }
+    .btn-primario:active { transform: scale(0.98); background: var(--green-dark); }
+    .btn-primario:disabled { opacity: 0.55; transform: none; }
+    .btn-secundario {
+        width: 100%; padding: 13px; border-radius: 12px; font-weight: 700; border: 2px solid var(--border-soft);
+        background: #fff; color: var(--text-body); font-size: 10.5pt; margin-top: 10px;
+    }
+    .btn-secundario:active { background: #f8fafc; }
+
+    #cart-empty { text-align: center; color: var(--text-muted); padding: 30px 20px; font-size: 9.5pt; }
+
+    /* ===== FORM (checkout) ===== */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 8.5pt; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 6px; }
+    .form-group input, .form-group select {
+        width: 100%; padding: 13px; border: 1px solid var(--border-soft); border-radius: 10px; font-size: 11.5pt; background: #fff;
+    }
+    .client-autocomplete-wrapper { position: relative; }
+    .client-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #fff;
+        border: 1px solid var(--border-soft); border-radius: 10px; max-height: 220px; overflow-y: auto;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12); z-index: 60; display: none;
+    }
+    .client-dropdown.open { display: block; }
+    .client-dropdown-item { padding: 13px 14px; font-size: 10.5pt; border-bottom: 1px solid #f1f5f9; color: var(--text-strong); display: flex; justify-content: space-between; }
+    .client-dropdown-item:last-child { border-bottom: none; }
+    .client-dropdown-item:active { background: #f8fafc; }
+    .client-dropdown-item .credito { color: var(--green-dark); font-weight: 700; font-size: 9pt; }
+
+    .pagamento-opcoes { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+    .opcao-pagamento {
+        display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 14px; border: 2px solid var(--border-soft);
+        background: #fff; text-align: left;
+    }
+    .opcao-pagamento .ic {
+        width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 18pt; flex-shrink: 0;
+    }
+    .opcao-pagamento.agora .ic { background: #c6f6d5; }
+    .opcao-pagamento.depois .ic { background: #feebc8; }
+    .opcao-pagamento .txt-title { font-weight: 800; font-size: 11pt; color: var(--text-strong); }
+    .opcao-pagamento .txt-sub { font-size: 8.5pt; color: var(--text-muted); margin-top: 1px; }
+    .opcao-pagamento:active { background: #f8fafc; }
+
+    .resumo-box { background: #f8fafc; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 10pt; }
+    .resumo-row { display: flex; justify-content: space-between; }
+    .resumo-row + .resumo-row { margin-top: 6px; }
+    .resumo-row strong { color: var(--text-strong); }
+    .resumo-row.credito strong { color: #805ad5; }
+    .resumo-row.faltando strong { color: var(--red); }
+
+    .pgto-checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 10pt; font-weight: 600; color: var(--text-body); margin-bottom: 8px; }
+
+    /* ===== TELA DE SUCESSO ===== */
+    .sucesso-box { text-align: center; padding: 30px 20px; }
+    .sucesso-icon {
+        width: 76px; height: 76px; border-radius: 50%; background: #c6f6d5; color: var(--green-dark);
+        display: flex; align-items: center; justify-content: center; font-size: 34pt; margin: 0 auto 18px;
+    }
+    .sucesso-titulo { font-size: 14pt; font-weight: 800; color: var(--text-strong); margin-bottom: 8px; }
+    .sucesso-msg { font-size: 10pt; color: var(--text-muted); line-height: 1.5; margin-bottom: 24px; }
+
+    /* ===== TOAST ===== */
+    #toast {
+        position: fixed; left: 50%; bottom: 16px; transform: translate(-50%, 20px); min-width: 240px; max-width: 90%;
+        background: #1a2333; color: #fff; padding: 14px 18px; border-radius: 10px; font-size: 9.5pt; text-align: center;
+        opacity: 0; transition: all .25s ease; z-index: 400; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translate(-50%, 0); }
+    #toast.success { background: #22543d; }
+    #toast.warning { background: #9c4221; }
+    #toast.danger { background: #822727; }
+
+    /* ===== LOADING ===== */
+    #loading-overlay {
+        position: fixed; inset: 0; background: var(--bg-page); z-index: 500;
+        display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+    }
+    #loading-overlay.hide { display: none; }
+    .spinner {
+        width: 38px; height: 38px; border: 4px solid #e2e8f0; border-top-color: var(--purple);
+        border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== MODAL LOCAL ===== */
+    .local-add-row { display: flex; gap: 8px; padding: 12px 16px 4px; }
+    .local-add-row input { flex: 1; padding: 12px; border: 1px solid var(--border-soft); border-radius: 8px; font-size: 10.5pt; }
+    .local-add-row button { padding: 12px 14px; border-radius: 8px; border: none; background: var(--purple); color: #fff; font-weight: 700; font-size: 9.5pt; }
+    .modal-list-item {
+        padding: 15px 18px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        font-size: 11.5pt; font-weight: 600; color: var(--text-strong); border-bottom: 1px solid #f1f5f9;
+    }
+    .modal-list-item:active { background: #f8fafc; }
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <p style="font-size:9.5pt; color:var(--text-muted); font-weight:600;">Carregando cardápio...</p>
+</div>
+
+<header>
+    <div class="header-row">
+        <div class="header-titles">
+            <h1>🛍️ Autoatendimento</h1>
+            <p>Escolha os produtos, monte seu pedido e pague na hora ou depois</p>
+        </div>
+        <button type="button" class="btn-icon-header" id="btn-abrir-local" title="Local">📍</button>
+    </div>
+    <div class="local-badge" id="local-badge-txt">📍 Selecione o local...</div>
+</header>
+
+<div class="container">
+    <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="busca-produto" placeholder="Buscar produto...">
+    </div>
+
+    <div class="produtos-grid" id="produtos-grid"></div>
+    <div id="produtos-empty" style="display:none;">Nenhum produto encontrado.</div>
+</div>
+
+<button type="button" class="cart-bar" id="cart-bar">
+    <div class="cart-bar-left">
+        <span class="cart-bar-count" id="cart-bar-count">0</span>
+        <span class="cart-bar-total" id="cart-bar-total">R$ 0,00</span>
+    </div>
+    <span class="cart-bar-cta">Ver pedido ➜</span>
+</button>
+
+<div id="toast"></div>
+
+<!-- ===================== SHEET: CARRINHO ===================== -->
+<div class="sheet-overlay" id="sheet-carrinho">
+    <div class="sheet-box">
+        <div class="sheet-header">
+            <h3>🧺 Seu pedido</h3>
+            <button type="button" class="sheet-close" id="fechar-carrinho">✕</button>
+        </div>
+        <div class="sheet-body" id="cart-lista"></div>
+        <div id="cart-empty" style="display:none;">Seu carrinho está vazio.</div>
+        <div class="sheet-footer">
+            <div class="total-box" style="margin-bottom:12px;">
+                <span>Total</span>
+                <span id="cart-total-footer">R$ 0,00</span>
+            </div>
+            <button type="button" class="btn-primario" id="btn-ir-checkout">Continuar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SHEET: DADOS DO CLIENTE ===================== -->
+<div class="sheet-overlay" id="sheet-cliente">
+    <div class="sheet-box">
+        <div class="sheet-header">
+            <h3>👤 Quem está levando?</h3>
+            <button type="button" class="sheet-close" id="fechar-cliente">✕</button>
+        </div>
+        <div class="sheet-body">
+            <div class="form-group client-autocomplete-wrapper">
+                <label>Seu nome</label>
+                <input type="text" id="input-nome-cliente" placeholder="Digite seu nome" autocomplete="off" style="text-transform:uppercase;">
+                <div class="client-dropdown" id="cliente-dropdown"></div>
+            </div>
+            <div class="total-box">
+                <span>Total do pedido</span>
+                <span id="cliente-total-resumo">R$ 0,00</span>
+            </div>
+        </div>
+        <div class="sheet-footer">
+            <button type="button" class="btn-primario" id="btn-confirmar-nome">Continuar</button>
+            <button type="button" class="btn-secundario" id="btn-voltar-cliente">⬅ Voltar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== MODAL: CONFIRMAR CADASTRO DE CLIENTE NOVO ===================== -->
+<div class="sheet-overlay center" id="sheet-cliente-novo">
+    <div class="sheet-box">
+        <div class="sucesso-box">
+            <div class="sucesso-icon" style="background:#f4e9f8; color:var(--purple-dark);">🆕</div>
+            <div class="sucesso-titulo">Cliente novo!</div>
+            <div class="sucesso-msg">Não encontramos <strong id="cliente-novo-nome-preview">-</strong> nos nossos cadastros. Confirma o cadastro deste novo cliente para continuar?</div>
+            <button type="button" class="btn-primario" id="btn-confirmar-cliente-novo">✓ Confirmar cadastro</button>
+            <button type="button" class="btn-secundario" id="btn-cancelar-cliente-novo">⬅ Corrigir nome</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SHEET: FORMA DE PAGAMENTO ===================== -->
+<div class="sheet-overlay" id="sheet-forma-pagamento">
+    <div class="sheet-box">
+        <div class="sheet-header">
+            <h3>💳 Como você quer pagar?</h3>
+            <button type="button" class="sheet-close" id="fechar-forma-pagamento">✕</button>
+        </div>
+        <div class="sheet-body">
+            <div class="total-box" style="margin-bottom:16px;">
+                <span>Total do pedido</span>
+                <span id="forma-total-resumo">R$ 0,00</span>
+            </div>
+            <div class="pagamento-opcoes">
+                <button type="button" class="opcao-pagamento agora" id="opcao-pagar-agora">
+                    <span class="ic">💵</span>
+                    <span>
+                        <span class="txt-title" style="display:block;">Pagar agora</span>
+                        <span class="txt-sub">Dinheiro, Pix ou cartão</span>
+                    </span>
+                </button>
+                <button type="button" class="opcao-pagamento depois" id="opcao-pagar-depois">
+                    <span class="ic">🕒</span>
+                    <span>
+                        <span class="txt-title" style="display:block;">Pagar depois</span>
+                        <span class="txt-sub">Fica pendente na sua conta</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+        <div class="sheet-footer">
+            <button type="button" class="btn-secundario" id="btn-voltar-forma-pagamento" style="margin-top:0;">⬅ Voltar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SHEET: PAGAR AGORA ===================== -->
+<div class="sheet-overlay" id="sheet-pagar-agora">
+    <div class="sheet-box">
+        <div class="sheet-header">
+            <h3>💵 Confirmar pagamento</h3>
+            <button type="button" class="sheet-close" id="fechar-pagar-agora">✕</button>
+        </div>
+        <div class="sheet-body">
+            <div class="resumo-box">
+                <div class="resumo-row"><span>Total do pedido:</span> <strong id="pgto-total-venda">R$ 0,00</strong></div>
+                <div class="resumo-row" id="pgto-credito-row" style="display:none;">
+                    <span>Crédito disponível:</span> <strong id="pgto-credito-disponivel">R$ 0,00</strong>
+                </div>
+            </div>
+
+            <div id="pgto-usar-credito-wrapper" style="display:none; margin-bottom:14px;">
+                <label class="pgto-checkbox-row">
+                    <input type="checkbox" id="pgto-usar-credito-checkbox"> Usar crédito disponível
+                </label>
+                <input type="number" id="pgto-credito-usar-valor" min="0" step="0.01" placeholder="Valor de crédito a usar" style="display:none;">
+            </div>
+
+            <div class="form-group">
+                <label>Forma de pagamento</label>
+                <select id="pgto-conta-recebimento">
+                    <option value="">-- Selecione --</option>
+                </select>
+            </div>
+
+            <div id="pix-chave-wrapper" style="display:none; margin-bottom:14px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Chave Pix para pagamento</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="pix-chave-exibida" readonly style="flex:1; padding:12px 14px; border:1px solid var(--border-soft); border-radius:10px; background:#f8fafc; font-weight:700; color:var(--purple-dark); font-size:10.5pt;">
+                        <button type="button" id="btn-copiar-chave-pix" style="flex-shrink:0; padding:0 16px; border:none; border-radius:10px; background:var(--purple); color:#fff; font-weight:700; font-size:9.5pt;">📋 Copiar</button>
+                    </div>
+                    <small style="display:block; margin-top:6px; color:var(--text-muted); font-size:8.5pt;">Copie a chave e pague no app do seu banco. Depois, informe o valor pago e finalize — o pedido fica registrado e o pagamento aguarda confirmação do responsável.</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Valor pago (R$)</label>
+                <input type="number" id="pgto-valor-pago" min="0" step="0.01" placeholder="Ex: 25.00">
+            </div>
+
+            <div class="resumo-box">
+                <div class="resumo-row"><span>Total coberto:</span> <strong id="pgto-total-coberto">R$ 0,00</strong></div>
+                <div class="resumo-row faltando" id="pgto-row-faltando" style="display:none;">
+                    <span>⚠️ Falta cobrir:</span> <strong id="pgto-valor-faltando">R$ 0,00</strong>
+                </div>
+            </div>
+        </div>
+        <div class="sheet-footer">
+            <button type="button" class="btn-primario" id="btn-finalizar-pagar-agora">✅ Confirmar e Finalizar</button>
+            <button type="button" class="btn-secundario" id="btn-voltar-pagar-agora">⬅ Voltar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SHEET: PAGAR DEPOIS ===================== -->
+<div class="sheet-overlay" id="sheet-pagar-depois">
+    <div class="sheet-box">
+        <div class="sheet-header">
+            <h3>🕒 Pagar depois</h3>
+            <button type="button" class="sheet-close" id="fechar-pagar-depois">✕</button>
+        </div>
+        <div class="sheet-body">
+            <p style="font-size:9.5pt; color:var(--text-muted); margin-bottom:16px; line-height:1.5;">
+                Seu pedido fica registrado como pendente. O pagamento pode ser feito depois, até a data combinada.
+            </p>
+            <div class="total-box" style="margin-bottom:16px;">
+                <span>Total do pedido</span>
+                <span id="depois-total-resumo">R$ 0,00</span>
+            </div>
+            <div class="form-group">
+                <label>Pagar até quando?</label>
+                <input type="date" id="input-vencimento-depois">
+            </div>
+        </div>
+        <div class="sheet-footer">
+            <button type="button" class="btn-primario" id="btn-finalizar-pagar-depois">✅ Confirmar Pedido</button>
+            <button type="button" class="btn-secundario" id="btn-voltar-pagar-depois">⬅ Voltar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SHEET: SUCESSO ===================== -->
+<div class="sheet-overlay center" id="sheet-sucesso">
+    <div class="sheet-box">
+        <div class="sucesso-box">
+            <div class="sucesso-icon">✓</div>
+            <div class="sucesso-titulo" id="sucesso-titulo">Pedido confirmado!</div>
+            <div class="sucesso-msg" id="sucesso-msg">Seu pedido foi registrado com sucesso.</div>
+            <button type="button" class="btn-primario" id="btn-novo-pedido">Fazer novo pedido</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== MODAL: LOCAL DESTE DISPOSITIVO ===================== -->
+<div class="sheet-overlay center" id="sheet-local">
+    <div class="sheet-box">
+        <div class="sheet-header">
+            <h3>📍 Local deste totem/dispositivo</h3>
+        </div>
+        <div class="sheet-body">
+            <p style="font-size:8.8pt; color:var(--text-muted); margin-bottom:6px;">Toque num local para selecionar de onde este dispositivo retira o estoque.</p>
+            <div id="local-lista"></div>
+            <div id="local-empty" style="display:none; padding:16px; text-align:center; color:var(--text-muted); font-size:9.5pt;">Nenhum local cadastrado ainda.</div>
+        </div>
+        <div class="local-add-row">
+            <input type="text" id="local-novo-nome" placeholder="Nome do novo local">
+            <button type="button" id="btn-local-adicionar">➕ Criar</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, onChildAdded, onChildChanged, onChildRemoved, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCaVDJ4LtJu-dlvSi4QrDygfhx1hBGSdDM",
+        authDomain: "banco-de-dados-invest.firebaseapp.com",
+        databaseURL: "https://banco-de-dados-invest-default-rtdb.firebaseio.com",
+        projectId: "banco-de-dados-invest",
+        storageBucket: "banco-de-dados-invest.firebasestorage.app",
+        messagingSenderId: "5603892998",
+        appId: "1:5603892998:web:459556f888d31629050887"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // ===== TOAST =====
+    let toastTimer = null;
+    function showToast(msg, type = 'info') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = 'show ' + type;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { el.className = ''; }, 3400);
+    }
+
+    function formatMoeda(v) { return 'R$ ' + parseFloat(v || 0).toFixed(2).replace('.', ','); }
+    function formatQuantidade(v) {
+        const n = parseFloat(v || 0);
+        return Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',');
+    }
+    function hojeISO() { return new Date().toISOString().split('T')[0]; }
+    function dataDaquiA(dias) {
+        const d = new Date();
+        d.setDate(d.getDate() + dias);
+        return d.toISOString().split('T')[0];
+    }
+
+    // ===== ESTADO =====
+    let allLoadedProducts = {};
+    let allLoadedClientes = {};
+    let allLoadedSales = {};
+    let allLoadedContas = {};
+    let allLoadedLocais = {};
+    let cart = {}; // { productKey: quantidade }
+    let selectedClienteKey = null;
+
+    // ===== SINCRONIZAÇÃO INCREMENTAL (evita rebaixar a coleção inteira a cada mudança) =====
+    // Mesmo princípio usado no site do PC e no mobile: onChildAdded/Changed/Removed em vez de
+    // onValue, pra não rebaixar o histórico inteiro de vendas a cada venda nova feita em
+    // qualquer terminal de autoatendimento ou no PC/mobile.
+    function sincronizarColecaoIncremental(nomeNo, storeObj, onChange, delayMs = 50) {
+        let renderAgendado = false;
+        function agendarOnChange() {
+            if (renderAgendado) return;
+            renderAgendado = true;
+            setTimeout(() => { renderAgendado = false; onChange(); }, delayMs);
+        }
+        const nodeRef = ref(db, nomeNo);
+        onChildAdded(nodeRef, (snap) => { storeObj[snap.key] = snap.val(); agendarOnChange(); });
+        onChildChanged(nodeRef, (snap) => { storeObj[snap.key] = snap.val(); agendarOnChange(); });
+        onChildRemoved(nodeRef, (snap) => { delete storeObj[snap.key]; agendarOnChange(); });
+    }
+
+    const LOCAL_STORAGE_KEY = 'localEstoqueDispositivo';
+    let localAtualKey = localStorage.getItem(LOCAL_STORAGE_KEY) || null;
+    let locaisJaCarregados = false;
+
+    // ===== LOCAL VINDO DE QR CODE (?local=CHAVE na URL) =====
+    // Quando o link foi aberto a partir de um QR code colado numa geladeira/local físico, a própria
+    // URL já diz qual local usar — o cliente não precisa escolher nada na tela.
+    const localFromQR = new URLSearchParams(window.location.search).get('local');
+    let vindoDeQRCode = false;
+
+    // ===== LÓGICA COMPARTILHADA DE ESTOQUE (mesma lógica do painel administrativo — ao mudar aqui, mudar lá também) =====
+    function localKeysOrdenados() {
+        return Object.keys(allLoadedLocais).sort((a, b) => (allLoadedLocais[a].criadoEm || 0) - (allLoadedLocais[b].criadoEm || 0));
+    }
+    function construirPorLocalLegado(prod) {
+        const obj = {};
+        const chaves = localKeysOrdenados();
+        chaves.forEach(k => { obj[k] = 0; });
+        if (chaves.length > 0) obj[chaves[0]] = parseFloat(prod?.readyStock || 0);
+        return obj;
+    }
+    function getEstoquePorLocalCompleto(prod) {
+        if (!prod) return {};
+        if (prod.estoquePorLocal && typeof prod.estoquePorLocal === 'object') {
+            const completo = { ...prod.estoquePorLocal };
+            localKeysOrdenados().forEach(k => { if (!(k in completo)) completo[k] = 0; });
+            return completo;
+        }
+        return construirPorLocalLegado(prod);
+    }
+    function getEstoqueNoLocal(prod, localKey) {
+        if (!prod || !localKey) return 0;
+        const mapa = getEstoquePorLocalCompleto(prod);
+        return parseFloat(mapa[localKey] || 0);
+    }
+    function nomeDoLocal(localKey) {
+        return (allLoadedLocais[localKey] && allLoadedLocais[localKey].nome) || 'Local removido';
+    }
+    function aplicarDeltaEstoque(prodKey, localKey, delta) {
+        const prod = allLoadedProducts[prodKey];
+        if (!prod || !localKey || !delta) return Promise.resolve();
+        const mapa = getEstoquePorLocalCompleto(prod);
+        mapa[localKey] = parseFloat((parseFloat(mapa[localKey] || 0) + delta).toFixed(3));
+        const novoTotal = Object.values(mapa).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+        prod.estoquePorLocal = mapa;
+        prod.readyStock = novoTotal;
+        return Promise.all([
+            set(ref(db, `produtos/${prodKey}/estoquePorLocal`), mapa),
+            set(ref(db, `produtos/${prodKey}/readyStock`), novoTotal)
+        ]);
+    }
+    // ===== FIM LÓGICA COMPARTILHADA =====
+
+    // ===== CRÉDITO DO CLIENTE (mesma lógica do painel administrativo) =====
+    function calcularCreditoCliente(nomeCliente) {
+        if (!nomeCliente) return 0;
+        const nomeLower = nomeCliente.toLowerCase();
+        let credito = 0;
+        Object.values(allLoadedSales).forEach(s => {
+            if ((s.clientName || '').toLowerCase() !== nomeLower) return;
+            if (s.origemCredito) {
+                credito += parseFloat(s.totalValue || 0);
+            } else if ((s.status || 'PAGO') === 'PAGO') {
+                credito += parseFloat(s.creditoGerado || 0) - parseFloat(s.creditoUsado || 0);
+            }
+        });
+        return Math.max(0, parseFloat(credito.toFixed(2)));
+    }
+
+    // ===== GERENCIAMENTO DAS 2 FORMAS DE PAGAMENTO "NA HORA" (Pix / Em Espécie) =====
+    // O Autoatendimento só mostra 2 opções fixas pro cliente: Pix e Em Espécie. Cada uma é resolvida,
+    // por baixo dos panos, pra conta real cadastrada no sistema PC com a flag correspondente ativa
+    // (pixAtivo / especieAtivo) — sempre 1 conta só por flag, então nunca há ambiguidade de qual usar.
+    function contaAceitaPix(conta) {
+        return !!(conta && conta.pixAtivo && (conta.pixChave || '').trim());
+    }
+    function encontrarContaPix() {
+        return Object.keys(allLoadedContas).find(k => contaAceitaPix(allLoadedContas[k])) || null;
+    }
+    function normalizarTexto(str) {
+        return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    }
+    function encontrarContaEspecie() {
+        // 1) Prioridade: conta marcada manualmente pelo ADM (checkbox "Em Espécie" na Aba de Contas)
+        const flagged = Object.keys(allLoadedContas).find(k => allLoadedContas[k].especieAtivo);
+        if (flagged) return flagged;
+        // 2) Respaldo: se nenhuma conta foi marcada ainda (ex: contas criadas antes desse recurso existir),
+        // busca por nome "Em Espécie" ou pelo tipo "Caixa" (dinheiro físico), pra não travar o autoatendimento.
+        const porNome = Object.keys(allLoadedContas).find(k => normalizarTexto(allLoadedContas[k].name) === 'em especie');
+        if (porNome) return porNome;
+        return Object.keys(allLoadedContas).find(k => allLoadedContas[k].tipo === 'Caixa') || null;
+    }
+
+    // ===== CORES DE THUMB (geradas a partir do nome, pra dar variedade sem precisar de fotos) =====
+    const THUMB_CORES = ['#9b59b6', '#2ecc71', '#e67e22', '#3498db', '#e74c3c', '#16a085', '#d35400', '#8e44ad'];
+    function corDoProduto(nome) {
+        let hash = 0;
+        for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+        return THUMB_CORES[Math.abs(hash) % THUMB_CORES.length];
+    }
+
+    // ===== CARREGAMENTO FIREBASE =====
+    onValue(ref(db, 'produtos'), (snap) => {
+        allLoadedProducts = snap.val() || {};
+        renderProdutos();
+        renderCarrinho();
+    });
+    onValue(ref(db, 'clientes'), (snap) => { allLoadedClientes = snap.val() || {}; });
+    sincronizarColecaoIncremental('vendas', allLoadedSales, () => {});
+    onValue(ref(db, 'contas'), (snap) => {
+        allLoadedContas = snap.val() || {};
+        popularSelectConta();
+    });
+    onValue(ref(db, 'locais'), (snap) => {
+        allLoadedLocais = snap.val() || {};
+        if (!locaisJaCarregados) {
+            locaisJaCarregados = true;
+            document.getElementById('loading-overlay').classList.add('hide');
+            if (localFromQR && allLoadedLocais[localFromQR]) {
+                // Link veio de um QR code válido: define o local automaticamente e nem mostra o seletor.
+                localAtualKey = localFromQR;
+                vindoDeQRCode = true;
+                localStorage.setItem(LOCAL_STORAGE_KEY, localFromQR);
+            } else if (localFromQR && !allLoadedLocais[localFromQR]) {
+                // QR code aponta para um local que foi excluído/renomeado — avisa e cai no fluxo manual.
+                showToast('Este QR code aponta para um local que não existe mais. Selecione manualmente.', 'warning');
+            }
+        }
+        atualizarBadgeLocal();
+        renderProdutos();
+        renderLocalLista();
+        if (locaisJaCarregados && !document.getElementById('sheet-local').classList.contains('show')
+            && !vindoDeQRCode && (!localAtualKey || !allLoadedLocais[localAtualKey])) {
+            abrirModalLocal();
+        }
+    });
+
+    function atualizarBadgeLocal() {
+        const badge = document.getElementById('local-badge-txt');
+        const btnTrocar = document.getElementById('btn-abrir-local');
+        if (localAtualKey && allLoadedLocais[localAtualKey]) {
+            badge.textContent = '📍 Retirada em: ' + allLoadedLocais[localAtualKey].nome;
+        } else {
+            badge.textContent = '📍 Selecione o local...';
+        }
+        // Quando o local veio de um QR code (escaneado numa geladeira específica), esconde o botão de
+        // trocar — evita o cliente confundir com o estoque de outro local sem querer.
+        btnTrocar.style.display = vindoDeQRCode ? 'none' : 'flex';
+    }
+
+    // ===== MODAL DE LOCAL =====
+    function abrirModalLocal() {
+        renderLocalLista();
+        document.getElementById('sheet-local').classList.add('show');
+    }
+    function fecharModalLocal() {
+        if (!localAtualKey || !allLoadedLocais[localAtualKey]) {
+            showToast('Selecione o local para continuar.', 'warning');
+            return;
+        }
+        document.getElementById('sheet-local').classList.remove('show');
+    }
+    function renderLocalLista() {
+        const lista = document.getElementById('local-lista');
+        const empty = document.getElementById('local-empty');
+        lista.innerHTML = '';
+        const chaves = localKeysOrdenados();
+        empty.style.display = chaves.length === 0 ? 'block' : 'none';
+        chaves.forEach(key => {
+            const item = document.createElement('div');
+            item.className = 'modal-list-item';
+            item.innerHTML = `<span>${key === localAtualKey ? '✅ ' : ''}${allLoadedLocais[key].nome}</span>`;
+            item.addEventListener('click', () => {
+                localAtualKey = key;
+                localStorage.setItem(LOCAL_STORAGE_KEY, key);
+                atualizarBadgeLocal();
+                renderProdutos();
+                renderLocalLista();
+                document.getElementById('sheet-local').classList.remove('show');
+                showToast('Local definido: ' + allLoadedLocais[key].nome, 'success');
+            });
+            lista.appendChild(item);
+        });
+    }
+    document.getElementById('btn-abrir-local').addEventListener('click', abrirModalLocal);
+    document.getElementById('btn-local-adicionar').addEventListener('click', () => {
+        const input = document.getElementById('local-novo-nome');
+        const nome = input.value.trim();
+        if (!nome) { showToast('Digite um nome para o local.', 'warning'); return; }
+        const novoRef = push(ref(db, 'locais'));
+        set(novoRef, { nome, criadoEm: Date.now() }).then(() => {
+            input.value = '';
+            localAtualKey = novoRef.key;
+            localStorage.setItem(LOCAL_STORAGE_KEY, novoRef.key);
+            showToast('Local criado e selecionado!', 'success');
+        }).catch(err => showToast('Erro ao criar local: ' + (err.message || err.code), 'danger'));
+    });
+
+    // ===== RENDER PRODUTOS =====
+    function chaveDeProdutosOrdenadas(termoBusca) {
+        const termo = (termoBusca || '').toLowerCase().trim();
+        return Object.keys(allLoadedProducts)
+            .filter(k => !termo || (allLoadedProducts[k].name || '').toLowerCase().includes(termo))
+            .sort((a, b) => {
+                const estoqueA = getEstoqueNoLocal(allLoadedProducts[a], localAtualKey);
+                const estoqueB = getEstoqueNoLocal(allLoadedProducts[b], localAtualKey);
+                if (estoqueB !== estoqueA) return estoqueB - estoqueA; // maior estoque primeiro
+                return (allLoadedProducts[a].name || '').localeCompare(allLoadedProducts[b].name || ''); // empate: ordem alfabética
+            });
+    }
+
+    function renderProdutos() {
+        const termo = document.getElementById('busca-produto').value;
+        const grid = document.getElementById('produtos-grid');
+        const empty = document.getElementById('produtos-empty');
+        const chaves = chaveDeProdutosOrdenadas(termo);
+        grid.innerHTML = '';
+        empty.style.display = chaves.length === 0 ? 'block' : 'none';
+
+        chaves.forEach(key => {
+            const prod = allLoadedProducts[key];
+            const estoque = localAtualKey ? getEstoqueNoLocal(prod, localAtualKey) : 0;
+            const noCarrinho = cart[key] || 0;
+            const esgotado = estoque <= 0;
+            const inicial = (prod.name || '?').trim().charAt(0).toUpperCase();
+
+            const card = document.createElement('div');
+            card.className = 'produto-card' + (esgotado ? ' esgotado' : '');
+            card.innerHTML = `
+                <div class="produto-thumb" style="background:${corDoProduto(prod.name || '')}">${inicial}</div>
+                <div class="produto-nome">${prod.name || 'Produto'}</div>
+                <div class="produto-preco">${formatMoeda(prod.sellingPrice)}</div>
+                <div class="produto-estoque ${esgotado ? 'zero' : (estoque <= 5 ? 'baixo' : '')}">
+                    ${esgotado ? 'Esgotado' : formatQuantidade(estoque) + ' disponível(is)'}
+                </div>
+                <div class="qtd-area"></div>
+            `;
+            const qtdArea = card.querySelector('.qtd-area');
+            renderQtdArea(qtdArea, key, noCarrinho, estoque, esgotado);
+            grid.appendChild(card);
+        });
+    }
+
+    function renderQtdArea(qtdArea, key, noCarrinho, estoque, esgotado) {
+        if (noCarrinho > 0) {
+            qtdArea.innerHTML = `
+                <div class="qtd-stepper">
+                    <button type="button" class="btn-menos">−</button>
+                    <span class="qtd-val">${noCarrinho}</span>
+                    <button type="button" class="btn-mais">+</button>
+                </div>`;
+            qtdArea.querySelector('.btn-menos').addEventListener('click', () => alterarCarrinho(key, -1));
+            qtdArea.querySelector('.btn-mais').addEventListener('click', () => alterarCarrinho(key, 1));
+        } else {
+            qtdArea.innerHTML = `<button type="button" class="btn-add-produto" ${esgotado ? 'disabled' : ''}>${esgotado ? 'Esgotado' : '➕ Adicionar'}</button>`;
+            const btn = qtdArea.querySelector('.btn-add-produto');
+            if (!esgotado) btn.addEventListener('click', () => alterarCarrinho(key, 1));
+        }
+    }
+
+    function alterarCarrinho(key, delta) {
+        if (!localAtualKey || !allLoadedLocais[localAtualKey]) {
+            showToast('Selecione o local antes de montar o pedido.', 'warning');
+            abrirModalLocal();
+            return;
+        }
+        const prod = allLoadedProducts[key];
+        const estoque = getEstoqueNoLocal(prod, localAtualKey);
+        const atual = cart[key] || 0;
+        const novo = atual + delta;
+        if (novo > estoque) {
+            showToast(`Só há ${formatQuantidade(estoque)} unidade(s) disponível(is) de ${prod.name}.`, 'warning');
+            return;
+        }
+        if (novo <= 0) {
+            delete cart[key];
+        } else {
+            cart[key] = novo;
+        }
+        renderProdutos();
+        renderCarrinho();
+    }
+
+    document.getElementById('busca-produto').addEventListener('input', renderProdutos);
+
+    // ===== CARRINHO =====
+    function totalCarrinho() {
+        return Object.keys(cart).reduce((sum, key) => {
+            const prod = allLoadedProducts[key];
+            const preco = prod ? (prod.sellingPrice || 0) : 0;
+            return sum + preco * cart[key];
+        }, 0);
+    }
+    function qtdTotalCarrinho() {
+        return Object.values(cart).reduce((s, q) => s + q, 0);
+    }
+
+    function renderCarrinho() {
+        const barCount = document.getElementById('cart-bar-count');
+        const barTotal = document.getElementById('cart-bar-total');
+        const bar = document.getElementById('cart-bar');
+        const qtd = qtdTotalCarrinho();
+        const total = totalCarrinho();
+        barCount.textContent = qtd;
+        barTotal.textContent = formatMoeda(total);
+        bar.classList.toggle('show', qtd > 0);
+
+        const lista = document.getElementById('cart-lista');
+        const empty = document.getElementById('cart-empty');
+        const chaves = Object.keys(cart).filter(k => allLoadedProducts[k]);
+        lista.innerHTML = '';
+        empty.style.display = chaves.length === 0 ? 'block' : 'none';
+        chaves.forEach(key => {
+            const prod = allLoadedProducts[key];
+            const q = cart[key];
+            const sub = (prod.sellingPrice || 0) * q;
+            const row = document.createElement('div');
+            row.className = 'cart-item';
+            row.innerHTML = `
+                <div class="cart-item-info">
+                    <div class="cart-item-nome">${prod.name}</div>
+                    <div class="cart-item-preco">${formatMoeda(prod.sellingPrice)} / un.</div>
+                </div>
+                <div class="cart-item-stepper">
+                    <button type="button" class="btn-menos">−</button>
+                    <span class="val">${q}</span>
+                    <button type="button" class="btn-mais">+</button>
+                </div>
+                <div class="cart-item-subtotal">${formatMoeda(sub)}</div>
+                <button type="button" class="cart-item-remove">🗑️</button>
+            `;
+            row.querySelector('.btn-menos').addEventListener('click', () => { alterarCarrinho(key, -1); renderCarrinho(); });
+            row.querySelector('.btn-mais').addEventListener('click', () => { alterarCarrinho(key, 1); renderCarrinho(); });
+            row.querySelector('.cart-item-remove').addEventListener('click', () => { delete cart[key]; renderProdutos(); renderCarrinho(); });
+            lista.appendChild(row);
+        });
+        document.getElementById('cart-total-footer').textContent = formatMoeda(total);
+    }
+
+    document.getElementById('cart-bar').addEventListener('click', () => document.getElementById('sheet-carrinho').classList.add('show'));
+    document.getElementById('fechar-carrinho').addEventListener('click', () => document.getElementById('sheet-carrinho').classList.remove('show'));
+
+    document.getElementById('btn-ir-checkout').addEventListener('click', () => {
+        if (qtdTotalCarrinho() === 0) { showToast('Seu carrinho está vazio.', 'warning'); return; }
+        document.getElementById('sheet-carrinho').classList.remove('show');
+        document.getElementById('cliente-total-resumo').textContent = formatMoeda(totalCarrinho());
+        document.getElementById('sheet-cliente').classList.add('show');
+        setTimeout(() => document.getElementById('input-nome-cliente').focus(), 150);
+    });
+
+    // ===== AUTOCOMPLETE DE CLIENTE =====
+    const inputNomeCliente = document.getElementById('input-nome-cliente');
+    const clienteDropdown = document.getElementById('cliente-dropdown');
+    inputNomeCliente.addEventListener('input', () => {
+        // Força maiúsculas no valor real do campo (não só visualmente), pra evitar nomes
+        // salvos em minúsculo que aparecem errados depois no sistema do PC.
+        const cursorPos = inputNomeCliente.selectionStart;
+        const valorMaiusculo = inputNomeCliente.value.toUpperCase();
+        if (inputNomeCliente.value !== valorMaiusculo) {
+            inputNomeCliente.value = valorMaiusculo;
+            inputNomeCliente.setSelectionRange(cursorPos, cursorPos);
+        }
+        selectedClienteKey = null;
+        const termo = inputNomeCliente.value.trim().toLowerCase();
+        clienteDropdown.innerHTML = '';
+        if (!termo) { clienteDropdown.classList.remove('open'); return; }
+        const matches = Object.keys(allLoadedClientes)
+            .filter(k => (allLoadedClientes[k].name || '').toLowerCase().includes(termo))
+            .slice(0, 6);
+        if (matches.length === 0) { clienteDropdown.classList.remove('open'); return; }
+        matches.forEach(key => {
+            const nome = allLoadedClientes[key].name;
+            const credito = calcularCreditoCliente(nome);
+            const item = document.createElement('div');
+            item.className = 'client-dropdown-item';
+            item.innerHTML = `<span>${nome}</span>${credito > 0 ? `<span class="credito">💳 ${formatMoeda(credito)}</span>` : ''}`;
+            item.addEventListener('click', () => {
+                inputNomeCliente.value = (nome || '').toUpperCase();
+                selectedClienteKey = key;
+                clienteDropdown.classList.remove('open');
+            });
+            clienteDropdown.appendChild(item);
+        });
+        clienteDropdown.classList.add('open');
+    });
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.client-autocomplete-wrapper')) clienteDropdown.classList.remove('open');
+    });
+
+    document.getElementById('fechar-cliente').addEventListener('click', () => document.getElementById('sheet-cliente').classList.remove('show'));
+    document.getElementById('btn-voltar-cliente').addEventListener('click', () => {
+        document.getElementById('sheet-cliente').classList.remove('show');
+        document.getElementById('sheet-carrinho').classList.add('show');
+    });
+
+    function avancarParaFormaPagamento() {
+        document.getElementById('sheet-cliente').classList.remove('show');
+        document.getElementById('sheet-cliente-novo').classList.remove('show');
+        document.getElementById('forma-total-resumo').textContent = formatMoeda(totalCarrinho());
+        document.getElementById('sheet-forma-pagamento').classList.add('show');
+    }
+
+    document.getElementById('btn-confirmar-nome').addEventListener('click', () => {
+        const nome = inputNomeCliente.value.trim().toUpperCase();
+        if (!nome) { showToast('Digite seu nome para continuar.', 'warning'); return; }
+        inputNomeCliente.value = nome;
+
+        // Se o nome já existe nos cadastros (ou é o consumidor final genérico), segue direto.
+        if (clienteKeyAtual() || nome === 'CONSUMIDOR FINAL') {
+            avancarParaFormaPagamento();
+            return;
+        }
+
+        // Nome não encontrado nos cadastros: pede confirmação antes de criar um cliente novo.
+        document.getElementById('cliente-novo-nome-preview').textContent = nome;
+        document.getElementById('sheet-cliente').classList.remove('show');
+        document.getElementById('sheet-cliente-novo').classList.add('show');
+    });
+
+    document.getElementById('btn-cancelar-cliente-novo').addEventListener('click', () => {
+        document.getElementById('sheet-cliente-novo').classList.remove('show');
+        document.getElementById('sheet-cliente').classList.add('show');
+        setTimeout(() => inputNomeCliente.focus(), 150);
+    });
+
+    document.getElementById('btn-confirmar-cliente-novo').addEventListener('click', () => {
+        const nome = inputNomeCliente.value.trim().toUpperCase();
+        if (!nome) { avancarParaFormaPagamento(); return; }
+        const btn = document.getElementById('btn-confirmar-cliente-novo');
+        btn.disabled = true;
+        const textoOriginal = btn.textContent;
+        btn.textContent = 'Cadastrando...';
+        const novoClienteRef = push(ref(db, 'clientes'));
+        set(novoClienteRef, { name: nome }).then(() => {
+            // Atualiza a cópia local imediatamente, pra não pedir cadastro de novo se o
+            // cliente voltar a bater o nome antes do listener do Firebase atualizar.
+            allLoadedClientes[novoClienteRef.key] = { name: nome };
+            selectedClienteKey = novoClienteRef.key;
+            btn.disabled = false;
+            btn.textContent = textoOriginal;
+            avancarParaFormaPagamento();
+        }).catch(err => {
+            console.error('Erro ao cadastrar cliente novo:', err);
+            btn.disabled = false;
+            btn.textContent = textoOriginal;
+            showToast('Não foi possível cadastrar o cliente agora, mas seu pedido pode continuar.', 'warning');
+            avancarParaFormaPagamento();
+        });
+    });
+    document.getElementById('fechar-forma-pagamento').addEventListener('click', () => document.getElementById('sheet-forma-pagamento').classList.remove('show'));
+    document.getElementById('btn-voltar-forma-pagamento').addEventListener('click', () => {
+        document.getElementById('sheet-forma-pagamento').classList.remove('show');
+        document.getElementById('sheet-cliente').classList.add('show');
+    });
+
+    // ===== NOME/CLIENTE ATUAL =====
+    function nomeClienteAtual() {
+        const raw = inputNomeCliente.value.trim().toUpperCase();
+        return raw || 'CONSUMIDOR FINAL';
+    }
+    function clienteKeyAtual() {
+        const nome = nomeClienteAtual();
+        let key = selectedClienteKey;
+        if (key && (!allLoadedClientes[key] || (allLoadedClientes[key].name || '').toLowerCase() !== nome.toLowerCase())) key = null;
+        if (!key) key = Object.keys(allLoadedClientes).find(k => (allLoadedClientes[k].name || '').toLowerCase() === nome.toLowerCase()) || null;
+        return key;
+    }
+
+    // ===== FLUXO: PAGAR AGORA =====
+    function popularSelectConta() {
+        const select = document.getElementById('pgto-conta-recebimento');
+        const atual = select.value;
+        select.innerHTML = '<option value="">-- Selecione --</option>';
+        const especieKey = encontrarContaEspecie();
+        const pixKey = encontrarContaPix();
+        if (especieKey) {
+            const opt = document.createElement('option');
+            opt.value = especieKey; opt.textContent = '💵 Em Espécie';
+            select.appendChild(opt);
+        }
+        if (pixKey) {
+            const opt = document.createElement('option');
+            opt.value = pixKey; opt.textContent = '📲 Pix';
+            select.appendChild(opt);
+        }
+        if ([...select.options].some(o => o.value === atual)) select.value = atual;
+        atualizarCampoPix();
+    }
+    function atualizarCampoPix() {
+        const contaKey = document.getElementById('pgto-conta-recebimento').value;
+        const conta = allLoadedContas[contaKey];
+        const wrapper = document.getElementById('pix-chave-wrapper');
+        if (contaAceitaPix(conta)) {
+            wrapper.style.display = 'block';
+            document.getElementById('pix-chave-exibida').value = conta.pixChave;
+        } else {
+            wrapper.style.display = 'none';
+        }
+    }
+    document.getElementById('pgto-conta-recebimento').addEventListener('change', atualizarCampoPix);
+    document.getElementById('btn-copiar-chave-pix').addEventListener('click', () => {
+        const txt = document.getElementById('pix-chave-exibida').value;
+        navigator.clipboard.writeText(txt)
+            .then(() => showToast('Chave Pix copiada!', 'success'))
+            .catch(() => showToast('Não foi possível copiar automaticamente. Selecione o texto manualmente.', 'warning'));
+    });
+
+    document.getElementById('opcao-pagar-agora').addEventListener('click', () => {
+        document.getElementById('sheet-forma-pagamento').classList.remove('show');
+        abrirSheetPagarAgora();
+    });
+    document.getElementById('fechar-pagar-agora').addEventListener('click', () => document.getElementById('sheet-pagar-agora').classList.remove('show'));
+    document.getElementById('btn-voltar-pagar-agora').addEventListener('click', () => {
+        document.getElementById('sheet-pagar-agora').classList.remove('show');
+        document.getElementById('sheet-forma-pagamento').classList.add('show');
+    });
+
+    function abrirSheetPagarAgora() {
+        const total = totalCarrinho();
+        const nome = nomeClienteAtual();
+        const cKey = clienteKeyAtual();
+        const credito = cKey ? calcularCreditoCliente(nome) : 0;
+
+        document.getElementById('pgto-total-venda').textContent = formatMoeda(total);
+        document.getElementById('pgto-credito-disponivel').textContent = formatMoeda(credito);
+        document.getElementById('pgto-credito-row').style.display = credito > 0 ? 'flex' : 'none';
+
+        const usarCreditoWrapper = document.getElementById('pgto-usar-credito-wrapper');
+        const checkbox = document.getElementById('pgto-usar-credito-checkbox');
+        const creditoInput = document.getElementById('pgto-credito-usar-valor');
+        usarCreditoWrapper.style.display = credito > 0 ? 'block' : 'none';
+        checkbox.checked = false;
+        creditoInput.style.display = 'none';
+        creditoInput.value = '';
+        creditoInput.max = credito;
+
+        document.getElementById('pgto-valor-pago').value = total.toFixed(2);
+        popularSelectConta();
+        atualizarResumoPagamento();
+        document.getElementById('sheet-pagar-agora').classList.add('show');
+    }
+
+    document.getElementById('pgto-usar-credito-checkbox').addEventListener('change', (e) => {
+        document.getElementById('pgto-credito-usar-valor').style.display = e.target.checked ? 'block' : 'none';
+        if (!e.target.checked) document.getElementById('pgto-credito-usar-valor').value = '';
+        atualizarResumoPagamento();
+    });
+    document.getElementById('pgto-credito-usar-valor').addEventListener('input', atualizarResumoPagamento);
+    document.getElementById('pgto-valor-pago').addEventListener('input', atualizarResumoPagamento);
+
+    function atualizarResumoPagamento() {
+        const total = totalCarrinho();
+        const valorPago = parseFloat(document.getElementById('pgto-valor-pago').value) || 0;
+        const creditoChecked = document.getElementById('pgto-usar-credito-checkbox').checked;
+        const creditoMax = parseFloat(document.getElementById('pgto-credito-usar-valor').max) || 0;
+        let creditoUsado = creditoChecked ? (parseFloat(document.getElementById('pgto-credito-usar-valor').value) || 0) : 0;
+        creditoUsado = Math.min(creditoUsado, creditoMax);
+        const coberto = valorPago + creditoUsado;
+        document.getElementById('pgto-total-coberto').textContent = formatMoeda(coberto);
+        const faltando = total - coberto;
+        document.getElementById('pgto-row-faltando').style.display = faltando > 0.009 ? 'flex' : 'none';
+        document.getElementById('pgto-valor-faltando').textContent = formatMoeda(Math.max(0, faltando));
+    }
+
+    function confirmarPagamentoAgora() {
+        const total = totalCarrinho();
+        const valorPago = parseFloat(document.getElementById('pgto-valor-pago').value) || 0;
+        const creditoChecked = document.getElementById('pgto-usar-credito-checkbox').checked;
+        const creditoMax = parseFloat(document.getElementById('pgto-credito-usar-valor').max) || 0;
+        let creditoUsado = creditoChecked ? (parseFloat(document.getElementById('pgto-credito-usar-valor').value) || 0) : 0;
+        creditoUsado = Math.min(creditoUsado, creditoMax);
+        const coberto = valorPago + creditoUsado;
+
+        if (coberto < total - 0.009) { showToast('O valor informado não cobre o total do pedido.', 'warning'); return; }
+        const contaKey = document.getElementById('pgto-conta-recebimento').value;
+        if (valorPago > 0 && !contaKey) { showToast('Selecione a forma de pagamento.', 'warning'); return; }
+
+        const conta = contaKey ? allLoadedContas[contaKey] : null;
+        const creditoGerado = parseFloat(Math.max(0, coberto - total).toFixed(2));
+        finalizarPedido({
+            status: 'PAGO',
+            valorPago, creditoUsado, creditoGerado,
+            contaPagamentoKey: contaKey || null,
+            contaPagamentoNome: contaKey ? conta.name : null,
+            pixPendente: contaAceitaPix(conta) && valorPago > 0
+        });
+    }
+    document.getElementById('btn-finalizar-pagar-agora').addEventListener('click', confirmarPagamentoAgora);
+
+    // ===== FLUXO: PAGAR DEPOIS =====
+    document.getElementById('opcao-pagar-depois').addEventListener('click', () => {
+        document.getElementById('sheet-forma-pagamento').classList.remove('show');
+        document.getElementById('depois-total-resumo').textContent = formatMoeda(totalCarrinho());
+        document.getElementById('input-vencimento-depois').value = dataDaquiA(7);
+        document.getElementById('sheet-pagar-depois').classList.add('show');
+    });
+    document.getElementById('fechar-pagar-depois').addEventListener('click', () => document.getElementById('sheet-pagar-depois').classList.remove('show'));
+    document.getElementById('btn-voltar-pagar-depois').addEventListener('click', () => {
+        document.getElementById('sheet-pagar-depois').classList.remove('show');
+        document.getElementById('sheet-forma-pagamento').classList.add('show');
+    });
+
+    document.getElementById('btn-finalizar-pagar-depois').addEventListener('click', () => {
+        const vencimento = document.getElementById('input-vencimento-depois').value;
+        if (!vencimento) { showToast('Escolha a data limite para pagamento.', 'warning'); return; }
+        finalizarPedido({ status: 'CONFIRMADA', salesDueDate: vencimento });
+    });
+
+    // ===== FINALIZAR PEDIDO (grava no Firebase, igual formato do painel administrativo) =====
+    let salvando = false;
+    function finalizarPedido(extra) {
+        if (salvando) return;
+        if (!localAtualKey || !allLoadedLocais[localAtualKey]) {
+            showToast('Selecione o local antes de finalizar.', 'warning');
+            abrirModalLocal();
+            return;
+        }
+        const chaves = Object.keys(cart).filter(k => allLoadedProducts[k] && cart[k] > 0);
+        if (chaves.length === 0) { showToast('Seu carrinho está vazio.', 'warning'); return; }
+
+        // Revalida estoque em tempo real antes de gravar
+        for (const key of chaves) {
+            const prod = allLoadedProducts[key];
+            const disponivel = getEstoqueNoLocal(prod, localAtualKey);
+            if (cart[key] > disponivel) {
+                showToast(`Estoque insuficiente de ${prod.name}. Disponível: ${formatQuantidade(disponivel)}.`, 'danger');
+                return;
+            }
+        }
+
+        salvando = true;
+        const btnPago = document.getElementById('btn-finalizar-pagar-agora');
+        const btnDepois = document.getElementById('btn-finalizar-pagar-depois');
+        [btnPago, btnDepois].forEach(b => { b.disabled = true; });
+        const textoOriginalPago = btnPago.textContent, textoOriginalDepois = btnDepois.textContent;
+        btnPago.textContent = '💾 Salvando...'; btnDepois.textContent = '💾 Salvando...';
+        const restaurarBotoes = () => {
+            salvando = false;
+            btnPago.disabled = false; btnDepois.disabled = false;
+            btnPago.textContent = textoOriginalPago; btnDepois.textContent = textoOriginalDepois;
+        };
+
+        let totalValue = 0, totalQuantity = 0, totalProfit = 0;
+        const items = chaves.map(key => {
+            const prod = allLoadedProducts[key];
+            const qtd = cart[key];
+            const preco = prod.sellingPrice || 0;
+            const sub = preco * qtd;
+            const custo = (prod.costPrice !== undefined && prod.costPrice !== null && prod.costPrice !== '') ? parseFloat(prod.costPrice) || 0 : 0;
+            totalValue += sub;
+            totalProfit += sub - (custo * qtd);
+            totalQuantity += qtd;
+            return { productKey: key, productName: prod.name, quantity: qtd, sellingPrice: preco, discountType: '$', discountValue: 0, totalItemNet: sub };
+        });
+
+        const clientName = nomeClienteAtual();
+        const payload = {
+            clientName, salesDate: hojeISO(), salesDueDate: extra.salesDueDate || hojeISO(),
+            status: extra.status, items, totalValue, totalProfit, quantity: totalQuantity, timestamp: Date.now(),
+            localVendaKey: localAtualKey, localVendaNome: nomeDoLocal(localAtualKey), origemAutoatendimento: true
+        };
+        if (extra.status === 'PAGO') {
+            payload.valorPago = extra.valorPago;
+            payload.creditoUsado = extra.creditoUsado;
+            payload.creditoGerado = extra.creditoGerado;
+            if (extra.contaPagamentoKey) {
+                payload.contaPagamentoKey = extra.contaPagamentoKey;
+                payload.contaPagamentoNome = extra.contaPagamentoNome;
+            }
+            // Pagamentos via Pix feitos aqui no Autoatendimento ficam "pendentes de confirmação": a venda já é
+            // registrada e o estoque já é debitado (o cliente já levou o produto), mas o valor só entra de fato
+            // no saldo da conta e vira movimentação no Caixa depois que o responsável confirmar no sistema PC
+            // que o Pix realmente caiu — evita contar como recebido algo que o cliente só disse que pagou.
+            if (extra.pixPendente) payload.pixPendente = true;
+        }
+
+        // Debita estoque em memória + prepara persistência
+        chaves.forEach(key => {
+            const prod = allLoadedProducts[key];
+            const mapa = getEstoquePorLocalCompleto(prod);
+            mapa[localAtualKey] = parseFloat(((parseFloat(mapa[localAtualKey]) || 0) - cart[key]).toFixed(3));
+            prod.estoquePorLocal = mapa;
+            prod.readyStock = Object.values(mapa).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+        });
+
+        const vendaRef = push(ref(db, 'vendas'));
+        let movRefCaixa = null;
+        if (extra.contaPagamentoKey && !extra.pixPendente) {
+            movRefCaixa = push(ref(db, 'movimentacoesCaixa'));
+            payload.movimentacaoCaixaKey = movRefCaixa.key;
+        }
+
+        set(vendaRef, payload).then(() => {
+            const persistEstoque = Promise.all(chaves.map(key => Promise.all([
+                set(ref(db, `produtos/${key}/estoquePorLocal`), allLoadedProducts[key].estoquePorLocal),
+                set(ref(db, `produtos/${key}/readyStock`), allLoadedProducts[key].readyStock)
+            ])));
+
+            const finalizarComCaixa = () => {
+                if (!extra.contaPagamentoKey || extra.pixPendente) return Promise.resolve();
+                const saldoAtual = parseFloat(allLoadedContas[extra.contaPagamentoKey].saldo || 0);
+                const novoSaldo = parseFloat((saldoAtual + extra.valorPago).toFixed(2));
+                return Promise.all([
+                    set(movRefCaixa, {
+                        contaKey: extra.contaPagamentoKey, contaNome: extra.contaPagamentoNome, tipo: 'entrada',
+                        valor: extra.valorPago, descricao: `Recebimento (autoatendimento) de ${clientName}`,
+                        data: hojeISO(), timestamp: Date.now()
+                    }),
+                    update(ref(db, `contas/${extra.contaPagamentoKey}`), { saldo: novoSaldo })
+                ]);
+            };
+
+            const clienteKeyExistente = Object.keys(allLoadedClientes).find(k => (allLoadedClientes[k].name || '').toLowerCase() === clientName.toLowerCase());
+            const criarClienteSeNecessario = (!clienteKeyExistente && (extra.creditoGerado || 0) > (extra.creditoUsado || 0) && clientName !== 'CONSUMIDOR FINAL')
+                ? set(push(ref(db, 'clientes')), { name: clientName })
+                : Promise.resolve();
+
+            Promise.all([persistEstoque, finalizarComCaixa(), criarClienteSeNecessario]).then(() => {
+                mostrarSucesso(extra.status, clientName, extra.pixPendente);
+                cart = {};
+                selectedClienteKey = null;
+                inputNomeCliente.value = '';
+                renderProdutos();
+                renderCarrinho();
+                restaurarBotoes();
+            }).catch(err => {
+                console.error('Erro ao finalizar pós-venda:', err);
+                showToast('Pedido salvo, mas houve uma falha ao atualizar estoque/caixa. Avise o responsável.', 'warning');
+                mostrarSucesso(extra.status, clientName, extra.pixPendente);
+                cart = {}; selectedClienteKey = null; inputNomeCliente.value = '';
+                renderProdutos(); renderCarrinho(); restaurarBotoes();
+            });
+        }).catch(err => {
+            console.error('Erro ao salvar pedido:', err);
+            restaurarBotoes();
+            showToast('Não foi possível registrar o pedido. Verifique a conexão e tente novamente. (' + (err.message || err.code || 'erro desconhecido') + ')', 'danger');
+        });
+    }
+
+    function mostrarSucesso(status, clientName, pixPendente) {
+        document.getElementById('sheet-pagar-agora').classList.remove('show');
+        document.getElementById('sheet-pagar-depois').classList.remove('show');
+        if (status === 'PAGO' && pixPendente) {
+            document.getElementById('sucesso-titulo').textContent = 'Pedido registrado! ⏳';
+            document.getElementById('sucesso-msg').textContent = `Obrigado, ${clientName}! Seu pedido foi registrado e o pagamento via Pix está aguardando confirmação do responsável.`;
+        } else if (status === 'PAGO') {
+            document.getElementById('sucesso-titulo').textContent = 'Pagamento confirmado! 🎉';
+            document.getElementById('sucesso-msg').textContent = `Obrigado, ${clientName}! Seu pedido foi registrado como pago.`;
+        } else {
+            document.getElementById('sucesso-titulo').textContent = 'Pedido registrado! 🕒';
+            document.getElementById('sucesso-msg').textContent = `Obrigado, ${clientName}! Seu pedido ficou pendente para pagamento posterior.`;
+        }
+        document.getElementById('sheet-sucesso').classList.add('show');
+    }
+    document.getElementById('btn-novo-pedido').addEventListener('click', () => {
+        document.getElementById('sheet-sucesso').classList.remove('show');
+    });
+
+</script>
+</body>
+</html>
